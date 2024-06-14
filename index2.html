@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Control de Horarios de Choferes</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Micro+5+Charted&family=Quantico:ital,wght@0,400;0,700;1,400;1,700&family=Silkscreen:wght@400;700&family=Zen+Dots&display=swap"
+        rel="stylesheet">
+    <style>
+        .clock,
+        .cronometro {
+            font-size: 2em;
+            text-align: center;
+            margin-top: 20px;
+            font-family: "Chakra Petch", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            color: red;
+
+        }
+
+        .card {
+            margin-bottom: 20px;
+        }
+
+        .log {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .container {
+            width: 375px;
+            background-color: rgb(10, 108, 133);
+            color: white;
+        }
+
+        .card {
+            color: black;
+        }
+
+        .btn {
+            width: 70%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h3 class="my-4 text-center">Control de Jornada Vehiculos de Carga</h3>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Registro de Entrada/Salida</h5>
+                <div class="form-group">
+                    <label for="rut">RUT del Chofer:</label>
+                    <input type="text" class="form-control" id="rut" placeholder="Ingrese RUT">
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-primary mx-2" id="entrada">Registrar Entrada</button>
+                    <button class="btn btn-secondary mx-2" id="salida" style="display:none;">Registrar Salida</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Actividades del Día</h5>
+                <div class="form-group">
+                    <label for="actividad">Actividad:</label>
+                    <select class="form-control" id="actividad">
+                        <option value="conduccion">Conducción</option>
+                        <option value="descanso">Descanso</option>
+                        <option value="colacion">Colación</option>
+                        <option value="apoyo">Apoyo</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-secondary mx-2" id="iniciarActividad">Iniciar Actividad</button>
+                    <button class="btn btn-danger mx-2" id="finalizarActividad" style="display:none;">Finalizar
+                        Actividad</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Reloj</h5>
+                <div class="clock" id="clock">00:00:00</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Cronómetro de Actividad</h5>
+                <div class="cronometro" id="cronometro">00:00:00</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Log de Eventos</h5>
+                <div class="log" id="logEventos"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        let actividadInicio;
+        let cronometroInterval;
+        let cronometroTime = 0;
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            $('#clock').text(`${hours}:${minutes}:${seconds}`);
+        }
+
+        function updateCronometro() {
+            cronometroTime++;
+            const hours = String(Math.floor(cronometroTime / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((cronometroTime % 3600) / 60)).padStart(2, '0');
+            const seconds = String(cronometroTime % 60).padStart(2, '0');
+            $('#cronometro').text(`${hours}:${minutes}:${seconds}`);
+        }
+
+        function startCronometro() {
+            cronometroTime = 0;
+            cronometroInterval = setInterval(updateCronometro, 1000);
+        }
+
+        function stopCronometro() {
+            clearInterval(cronometroInterval);
+        }
+
+        function logEvento(evento) {
+            const now = new Date();
+            const fechaHora = now.toISOString().slice(0, 19).replace('T', ' ');
+            $('#logEventos').prepend(`<p>${fechaHora}: ${evento}</p>`);
+        }
+
+        setInterval(updateClock, 1000);
+
+        $(document).ready(function () {
+            $('#entrada').click(function () {
+                const rut = $('#rut').val();
+                $.post('php/saveData.php', { rut: rut, type: 'entrada' }, function (response) {
+                    alert(response);
+                    $('#entrada').hide();
+                    $('#salida').show();
+                    logEvento('Inicio de jornada');
+                });
+            });
+
+            $('#salida').click(function () {
+                const rut = $('#rut').val();
+                $.post('php/saveData.php', { rut: rut, type: 'salida' }, function (response) {
+                    alert(response);
+                    $('#salida').hide();
+                    $('#entrada').show();
+                    logEvento('Término de jornada');
+                });
+            });
+
+            $('#iniciarActividad').click(function () {
+                actividadInicio = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                startCronometro();
+                $('#iniciarActividad').hide();
+                $('#finalizarActividad').show();
+                const actividad = $('#actividad').val();
+                logEvento(`Inicio de actividad: ${actividad}`);
+            });
+
+            $('#finalizarActividad').click(function () {
+                const rut = $('#rut').val();
+                const actividad = $('#actividad').val();
+                const actividadFin = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                stopCronometro();
+                $.post('php/saveData.php', { rut: rut, type: 'actividad', actividad: actividad, inicio: actividadInicio, fin: actividadFin }, function (response) {
+                    alert(response);
+                    $('#finalizarActividad').hide();
+                    $('#iniciarActividad').show();
+                    logEvento(`Término de actividad: ${actividad}`);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
